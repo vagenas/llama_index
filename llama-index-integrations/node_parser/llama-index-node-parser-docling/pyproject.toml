@@ -14,7 +14,7 @@ contains_example = true
 import_path = "llama_index.node_parser.docling"
 
 [tool.llamahub.class_authors]
-DoclingPDFReader = "vagenas"
+DoclingNodeParser = "vagenas"
 
 [tool.mypy]
 disallow_untyped_defs = true
