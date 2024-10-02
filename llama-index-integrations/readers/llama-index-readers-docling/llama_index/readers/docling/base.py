@@ -1,4 +1,3 @@
-from enum import Enum
 from pathlib import Path
 from typing import Any, Iterable, Literal
 
@@ -12,17 +11,14 @@ from llama_index.core.readers.base import BasePydanticReader
 from llama_index.core.schema import Document as LIDocument
 
 from llama_index.core import Document as LIDocument
+from pydantic import Field
 
 
 class DoclingPDFReader(BasePydanticReader):
     export_type: Literal["markdown", "json"] = "markdown"
+    doc_converter: DocumentConverter = Field(default_factory=DocumentConverter)
+    doc_id_generator: BaseIDGenerator | None = DocHashIDGenerator()
     metadata_extractor: BaseMetadataExtractor | None = SimpleMetadataExtractor()
-    doc_id_generator: BaseIDGenerator = DocHashIDGenerator()
-    chunk_docs: bool = True
-
-    class _Keys(str, Enum):
-        EXCL_EMBED_META_KEYS = "excluded_embed_metadata_keys"
-        EXCL_LLM_META_KEYS = "excluded_llm_metadata_keys"
 
     def lazy_load_data(
         self,
@@ -30,7 +26,6 @@ class DoclingPDFReader(BasePydanticReader):
         *args: Any,
         **load_kwargs: Any,
     ) -> Iterable[LIDocument]:
-        converter = DocumentConverter()
         file_paths = (
             file_path
             if isinstance(file_path, Iterable) and not isinstance(file_path, str)
@@ -38,7 +33,7 @@ class DoclingPDFReader(BasePydanticReader):
         )
 
         for source in file_paths:
-            dl_doc = converter.convert_single(source).output
+            dl_doc = self.doc_converter.convert_single(source).output
             text = (
                 dl_doc.export_to_markdown()
                 if self.export_type == "markdown"
@@ -46,17 +41,17 @@ class DoclingPDFReader(BasePydanticReader):
             )
 
             _source = str(source) if isinstance(source, Path) else source
-            doc_id = self.doc_id_generator.generate_id(doc=dl_doc)
-            doc_kwargs = (
-                {
-                    "excluded_embed_metadata_keys": self.metadata_extractor.get_excluded_embed_metadata_keys(),
-                    "excluded_llm_metadata_keys": self.metadata_extractor.get_excluded_llm_metadata_keys(),
-                }
-                if self.metadata_extractor
-                else {}
-            )
+            doc_kwargs = {}
+            if self.doc_id_generator:
+                doc_kwargs["doc_id"] = self.doc_id_generator.generate_id(doc=dl_doc)
+            if self.metadata_extractor:
+                doc_kwargs[
+                    "excluded_embed_metadata_keys"
+                ] = self.metadata_extractor.get_excluded_embed_metadata_keys()
+                doc_kwargs[
+                    "excluded_llm_metadata_keys"
+                ] = self.metadata_extractor.get_excluded_llm_metadata_keys()
             li_doc = LIDocument(
-                doc_id=doc_id,
                 text=text,
                 **doc_kwargs,
             )

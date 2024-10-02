@@ -18,12 +18,12 @@ from llama_index.core.schema import (
 from llama_index.core.utils import get_tqdm_iterable
 
 
-class DocMetaKeys(str, Enum):
+class _DocMetaKeys(str, Enum):
     DL_DOC_HASH = "dl_doc_hash"
     ORIGIN = "origin"
 
 
-class NodeMetaKeys(str, Enum):
+class _NodeMetaKeys(str, Enum):
     PATH = "path"
     PAGE = "page"
     BBOX = "bbox"
@@ -34,7 +34,7 @@ class NodeMetaKeys(str, Enum):
 class DoclingNodeParser(NodeParser):
     chunker: BaseChunker = HierarchicalChunker(heading_as_metadata=True)
 
-    def _parse_nodes(  # TODO: consider switching to more "official"/public API
+    def _parse_nodes(
         self,
         nodes: Sequence[BaseNode],
         show_progress: bool = False,
@@ -52,9 +52,9 @@ class DoclingNodeParser(NodeParser):
                 rels: dict[NodeRelationship, RelatedNodeType] = {
                     NodeRelationship.SOURCE: li_doc.as_related_node_info(),
                 }
-                excl_doc_meta_keys = [d.value for d in DocMetaKeys]
+                excl_doc_meta_keys = [d.value for d in _DocMetaKeys]
                 excl_node_meta_keys = [
-                    n.value for n in NodeMetaKeys if n not in [NodeMetaKeys.HEADING]
+                    n.value for n in _NodeMetaKeys if n not in [_NodeMetaKeys.HEADING]
                 ]
                 excl_meta_keys = excl_doc_meta_keys + excl_node_meta_keys
                 node = TextNode(
@@ -64,11 +64,11 @@ class DoclingNodeParser(NodeParser):
                     relationships=rels,
                 )
                 node.metadata = {
-                    NodeMetaKeys.PATH: chunk.path,
-                    NodeMetaKeys.HEADING: chunk.heading,
+                    _NodeMetaKeys.PATH: chunk.path,
+                    _NodeMetaKeys.HEADING: chunk.heading,
                 }
                 if isinstance(chunk, ChunkWithMetadata):
-                    node.metadata[NodeMetaKeys.PAGE] = chunk.page
-                    node.metadata[NodeMetaKeys.BBOX] = chunk.bbox
+                    node.metadata[_NodeMetaKeys.PAGE] = chunk.page
+                    node.metadata[_NodeMetaKeys.BBOX] = chunk.bbox
                 all_nodes.append(node)
         return all_nodes
