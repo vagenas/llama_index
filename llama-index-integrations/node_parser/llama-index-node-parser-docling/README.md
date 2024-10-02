@@ -7,7 +7,7 @@ Docling Node Parser parses [Docling](https://github.com/DS4SD/docling)'s native 
 ## Installation
 
 ```console
-pip install llama-index-readers-docling
+pip install llama-index-node-parser-docling
 ```
 
 ## Usage
