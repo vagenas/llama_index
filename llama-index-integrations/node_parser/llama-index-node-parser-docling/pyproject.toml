@@ -10,7 +10,7 @@ check-hidden = true
 skip = "*.csv,*.html,*.json,*.jsonl,*.pdf,*.txt,*.ipynb"
 
 [tool.llamahub]
-contains_example = true  # TODO clarify
+contains_example = false  # TODO clarify
 import_path = "llama_index.node_parser.docling"
 
 [tool.llamahub.class_authors]
@@ -65,4 +65,3 @@ llama-index-llms-huggingface-api = "^0.2.0"
 llama-index-readers-docling = {develop = true, path = "../../readers/llama-index-readers-docling/"}  # TODO temp
 llama-index-vector-stores-milvus = "^0.2.5"
 python-dotenv = "^1.0.1"
-rich = "^13.9.1"

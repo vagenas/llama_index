@@ -1,11 +1,10 @@
-from enum import Enum
 from typing import Any, Iterable, Sequence
 
 from llama_index.core.schema import Document as LIDocument
 from llama_index.core.node_parser import NodeParser
 
 from docling_core.transforms.chunker import BaseChunker
-from docling_core.transforms.chunker import ChunkWithMetadata, HierarchicalChunker
+from docling_core.transforms.chunker import HierarchicalChunker
 from docling_core.types import Document as DLDocument
 from llama_index.core import Document as LIDocument
 from llama_index.core.node_parser import NodeParser
@@ -16,23 +15,22 @@ from llama_index.core.schema import (
     TextNode,
 )
 from llama_index.core.utils import get_tqdm_iterable
+from pydantic import Field
 
 
-class _DocMetaKeys(str, Enum):
-    DL_DOC_HASH = "dl_doc_hash"
-    ORIGIN = "origin"
-
-
-class _NodeMetaKeys(str, Enum):
-    PATH = "path"
-    PAGE = "page"
-    BBOX = "bbox"
-    ORIGIN = "origin"
-    HEADING = "heading"
+_NODE_TEXT_KEY = "text"
 
 
 class DoclingNodeParser(NodeParser):
     chunker: BaseChunker = HierarchicalChunker(heading_as_metadata=True)
+    doc_meta_keys_allowed: set[str] = Field(
+        default=set(),
+        description="Document metadata keys allowed to be included for embedding and LLM input.",
+    )
+    node_meta_keys_allowed: set[str] = Field(
+        default={"heading"},
+        description="Node metadata keys allowed to be included for embedding and LLM input.",
+    )
 
     def _parse_nodes(
         self,
@@ -52,23 +50,24 @@ class DoclingNodeParser(NodeParser):
                 rels: dict[NodeRelationship, RelatedNodeType] = {
                     NodeRelationship.SOURCE: li_doc.as_related_node_info(),
                 }
-                excl_doc_meta_keys = [d.value for d in _DocMetaKeys]
-                excl_node_meta_keys = [
-                    n.value for n in _NodeMetaKeys if n not in [_NodeMetaKeys.HEADING]
-                ]
-                excl_meta_keys = excl_doc_meta_keys + excl_node_meta_keys
+                metadata = chunk.model_dump(
+                    exclude=_NODE_TEXT_KEY,
+                    exclude_none=True,
+                )
+                # by default we exclude all meta keys from embedding/LLM — unless allowed
+                excl_node_meta_keys = {
+                    k for k in metadata if k not in self.node_meta_keys_allowed
+                }
+                excl_doc_meta_keys = {
+                    k for k in li_doc.metadata if k not in self.doc_meta_keys_allowed
+                }
+                excl_meta_keys = list(excl_node_meta_keys | excl_doc_meta_keys)
                 node = TextNode(
                     text=chunk.text,
                     excluded_embed_metadata_keys=excl_meta_keys,
                     excluded_llm_metadata_keys=excl_meta_keys,
                     relationships=rels,
                 )
-                node.metadata = {
-                    _NodeMetaKeys.PATH: chunk.path,
-                    _NodeMetaKeys.HEADING: chunk.heading,
-                }
-                if isinstance(chunk, ChunkWithMetadata):
-                    node.metadata[_NodeMetaKeys.PAGE] = chunk.page
-                    node.metadata[_NodeMetaKeys.BBOX] = chunk.bbox
+                node.metadata = metadata
                 all_nodes.append(node)
         return all_nodes

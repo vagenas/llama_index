@@ -18,13 +18,12 @@ Basic usage looks like this:
 
 ```python
 from llama_index.readers.docling import DoclingPDFReader
+from llama_index.node_parser.docling import DoclingNodeParser
 
 reader = DoclingPDFReader(export_type="json")
 docs = reader.load_data(file_path="https://arxiv.org/pdf/2408.09869")
 print(f"{docs[0].text[:50]}...")
 # > {"_name":"","type":"pdf-document","description":{"...
-
-from llama_index.node_parser.docling import DoclingNodeParser
 
 node_parser = DoclingNodeParser()
 nodes = node_parser.get_nodes_from_documents(documents=docs)
