@@ -8,6 +8,7 @@ from docling_core.transforms.chunker import HierarchicalChunker
 from docling_core.types import Document as DLDocument
 from llama_index.core import Document as LIDocument
 from llama_index.core.node_parser import NodeParser
+from llama_index.core.node_parser.node_utils import IdFuncCallable, default_id_func
 from llama_index.core.schema import (
     BaseNode,
     NodeRelationship,
@@ -16,7 +17,6 @@ from llama_index.core.schema import (
 )
 from llama_index.core.utils import get_tqdm_iterable
 from pydantic import Field
-
 
 _NODE_TEXT_KEY = "text"
 
@@ -38,6 +38,7 @@ class DoclingNodeParser(NodeParser):
         show_progress: bool = False,
         **kwargs: Any,
     ) -> list[BaseNode]:
+        id_func: IdFuncCallable = self.id_func or default_id_func
         nodes_with_progress: Iterable[BaseNode] = get_tqdm_iterable(
             items=nodes, show_progress=show_progress, desc="Parsing nodes"
         )
@@ -46,7 +47,7 @@ class DoclingNodeParser(NodeParser):
             li_doc = LIDocument.model_validate(input_node)
             dl_doc: DLDocument = DLDocument.model_validate_json(li_doc.get_content())
             chunk_iter = self.chunker.chunk(dl_doc=dl_doc)
-            for chunk in chunk_iter:
+            for i, chunk in enumerate(chunk_iter):
                 rels: dict[NodeRelationship, RelatedNodeType] = {
                     NodeRelationship.SOURCE: li_doc.as_related_node_info(),
                 }
@@ -55,14 +56,17 @@ class DoclingNodeParser(NodeParser):
                     exclude_none=True,
                 )
                 # by default we exclude all meta keys from embedding/LLM — unless allowed
-                excl_node_meta_keys = {
+                excl_meta_keys = [
                     k for k in metadata if k not in self.node_meta_keys_allowed
-                }
-                excl_doc_meta_keys = {
-                    k for k in li_doc.metadata if k not in self.doc_meta_keys_allowed
-                }
-                excl_meta_keys = list(excl_node_meta_keys | excl_doc_meta_keys)
+                ]
+                if self.include_metadata:
+                    excl_meta_keys = [
+                        k
+                        for k in li_doc.metadata
+                        if k not in self.doc_meta_keys_allowed
+                    ] + excl_meta_keys
                 node = TextNode(
+                    id_=id_func(i=i, doc=li_doc),
                     text=chunk.text,
                     excluded_embed_metadata_keys=excl_meta_keys,
                     excluded_llm_metadata_keys=excl_meta_keys,

@@ -40,7 +40,7 @@ class DoclingPDFReader(BasePydanticReader):
                 else dl_doc.model_dump_json()
             )
 
-            _source = str(source) if isinstance(source, Path) else source
+            origin = str(source) if isinstance(source, Path) else source
             doc_kwargs = {}
             if self.doc_id_generator:
                 doc_kwargs["doc_id"] = self.doc_id_generator.generate_id(doc=dl_doc)
@@ -58,6 +58,6 @@ class DoclingPDFReader(BasePydanticReader):
             if self.metadata_extractor:
                 li_doc.metadata = self.metadata_extractor.get_metadata(
                     doc=dl_doc,
-                    origin=_source,
+                    origin=origin,
                 )
             yield li_doc
