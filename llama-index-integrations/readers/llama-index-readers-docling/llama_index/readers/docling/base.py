@@ -8,13 +8,22 @@ from docling_core.transforms.metadata_extractor import (
     SimpleMetadataExtractor,
 )
 from llama_index.core.readers.base import BasePydanticReader
-from llama_index.core.schema import Document as LIDocument
-
 from llama_index.core import Document as LIDocument
 from pydantic import Field
 
 
 class DoclingPDFReader(BasePydanticReader):
+    """Docling PDF Reader.
+
+    Extracts PDF into LlamaIndex documents either as Markdown or JSON-serialized Docling native format.
+
+    Args:
+        export_type (Literal["markdown", "json"], optional): The type to export to. Defaults to "markdown".
+        doc_converter (DocumentConverter, optional): The Docling converter to use. Default factory: `DocumentConverter`.
+        doc_id_generator (BaseIDGenerator | None, optional): The document ID generator to use. Setting to `None` falls back to LlamaIndex's default ID generation. Defaults to `DocHashIDGenerator()`.
+        metadata_extractor (BaseMetadataExtractor | None, optional): The document metadata extractor to use. Setting to `None` skips doc metadata extraction. Defaults to `SimpleMetadataExtractor()`.
+    """
+
     export_type: Literal["markdown", "json"] = "markdown"
     doc_converter: DocumentConverter = Field(default_factory=DocumentConverter)
     doc_id_generator: BaseIDGenerator | None = DocHashIDGenerator()
@@ -26,6 +35,14 @@ class DoclingPDFReader(BasePydanticReader):
         *args: Any,
         **load_kwargs: Any,
     ) -> Iterable[LIDocument]:
+        """Lazily load PDF data from given source.
+
+        Args:
+            file_path (str | Path | Iterable[str] | Iterable[Path]): PDF file source as single str (URL or local file) or pathlib.Path — or iterable thereof
+
+        Returns:
+            Iterable[LIDocument]: Iterable over the created LlamaIndex documents
+        """
         file_paths = (
             file_path
             if isinstance(file_path, Iterable) and not isinstance(file_path, str)

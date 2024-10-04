@@ -3,8 +3,7 @@ from typing import Any, Iterable, Sequence
 from llama_index.core.schema import Document as LIDocument
 from llama_index.core.node_parser import NodeParser
 
-from docling_core.transforms.chunker import BaseChunker
-from docling_core.transforms.chunker import HierarchicalChunker
+from docling_core.transforms.chunker import BaseChunker, HierarchicalChunker
 from docling_core.types import Document as DLDocument
 from llama_index.core import Document as LIDocument
 from llama_index.core.node_parser import NodeParser
@@ -16,21 +15,26 @@ from llama_index.core.schema import (
     TextNode,
 )
 from llama_index.core.utils import get_tqdm_iterable
-from pydantic import Field
 
 _NODE_TEXT_KEY = "text"
 
 
 class DoclingNodeParser(NodeParser):
+    """Docling format node parser.
+
+    Splits the JSON format of `DoclingPDFReader` into nodes corresponding
+    to respective document elements from Docling's data model
+    (paragraphs, headings, tables etc.)
+
+    Args:
+        chunker (BaseChunker, optional): The chunker to use. Defaults to `HierarchicalChunker(heading_as_metadata=True)`.
+        doc_meta_keys_allowed (set[str], optional): The Document metadata keys allowed to be included for embedding and LLM input. Defaults to `set()`.
+        node_meta_keys_allowed (set[str], optional): The Node metadata keys allowed to be included for embedding and LLM input. Defaults to `{"heading"}`.
+    """
+
     chunker: BaseChunker = HierarchicalChunker(heading_as_metadata=True)
-    doc_meta_keys_allowed: set[str] = Field(
-        default=set(),
-        description="Document metadata keys allowed to be included for embedding and LLM input.",
-    )
-    node_meta_keys_allowed: set[str] = Field(
-        default={"heading"},
-        description="Node metadata keys allowed to be included for embedding and LLM input.",
-    )
+    doc_meta_keys_allowed: set[str] = set()
+    node_meta_keys_allowed: set[str] = {"heading"}
 
     def _parse_nodes(
         self,
