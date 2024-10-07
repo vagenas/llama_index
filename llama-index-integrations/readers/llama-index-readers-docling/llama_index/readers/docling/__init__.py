@@ -1,4 +1,4 @@
-from llama_index.readers.docling.base import DoclingPDFReader
+from llama_index.readers.docling.base import DoclingReader
 
 
-__all__ = ["DoclingPDFReader"]
+__all__ = ["DoclingReader"]

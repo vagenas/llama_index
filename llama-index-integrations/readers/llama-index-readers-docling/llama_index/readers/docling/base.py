@@ -1,5 +1,6 @@
+from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable, Literal
+from typing import Iterable
 
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.id_generator import BaseIDGenerator, DocHashIDGenerator
@@ -12,10 +13,10 @@ from llama_index.core import Document as LIDocument
 from pydantic import Field
 
 
-class DoclingPDFReader(BasePydanticReader):
-    """Docling PDF Reader.
+class DoclingReader(BasePydanticReader):
+    """Docling Reader.
 
-    Extracts PDF into LlamaIndex documents either as Markdown or JSON-serialized Docling native format.
+    Extracts PDF documents into LlamaIndex documents either using Markdown or JSON-serialized Docling native format.
 
     Args:
         export_type (Literal["markdown", "json"], optional): The type to export to. Defaults to "markdown".
@@ -24,7 +25,11 @@ class DoclingPDFReader(BasePydanticReader):
         metadata_extractor (BaseMetadataExtractor | None, optional): The document metadata extractor to use. Setting to `None` skips doc metadata extraction. Defaults to `SimpleMetadataExtractor()`.
     """
 
-    export_type: Literal["markdown", "json"] = "markdown"
+    class ExportType(str, Enum):
+        MARKDOWN = "markdown"
+        JSON = "json"
+
+    export_type: ExportType = ExportType.MARKDOWN
     doc_converter: DocumentConverter = Field(default_factory=DocumentConverter)
     doc_id_generator: BaseIDGenerator | None = DocHashIDGenerator()
     metadata_extractor: BaseMetadataExtractor | None = SimpleMetadataExtractor()
@@ -32,16 +37,16 @@ class DoclingPDFReader(BasePydanticReader):
     def lazy_load_data(
         self,
         file_path: str | Path | Iterable[str] | Iterable[Path],
-        *args: Any,
-        **load_kwargs: Any,
+        extra_info: dict | None = None,
     ) -> Iterable[LIDocument]:
-        """Lazily load PDF data from given source.
+        """Lazily load from given source.
 
         Args:
-            file_path (str | Path | Iterable[str] | Iterable[Path]): PDF file source as single str (URL or local file) or pathlib.Path — or iterable thereof
+            file_path (str | Path | Iterable[str] | Iterable[Path]): Document file source as single str (URL or local file) or pathlib.Path — or iterable thereof
+            extra_info (dict | None, optional): Any pre-existing metadata to include. Defaults to None.
 
         Returns:
-            Iterable[LIDocument]: Iterable over the created LlamaIndex documents
+            Iterable[LIDocument]: Iterable over the created LlamaIndex documents.
         """
         file_paths = (
             file_path
@@ -51,12 +56,14 @@ class DoclingPDFReader(BasePydanticReader):
 
         for source in file_paths:
             dl_doc = self.doc_converter.convert_single(source).output
-            text = (
-                dl_doc.export_to_markdown()
-                if self.export_type == "markdown"
-                else dl_doc.model_dump_json()
-            )
-
+            text: str
+            match self.export_type:
+                case self.ExportType.MARKDOWN:
+                    text = dl_doc.export_to_markdown()
+                case self.ExportType.JSON:
+                    text = dl_doc.model_dump_json()
+                case _:
+                    raise ValueError(f"Unexpected export type: {self.export_type}")
             origin = str(source) if isinstance(source, Path) else source
             doc_kwargs = {}
             if self.doc_id_generator:
@@ -72,9 +79,12 @@ class DoclingPDFReader(BasePydanticReader):
                 text=text,
                 **doc_kwargs,
             )
+            li_doc.metadata = extra_info or {}
             if self.metadata_extractor:
-                li_doc.metadata = self.metadata_extractor.get_metadata(
-                    doc=dl_doc,
-                    origin=origin,
+                li_doc.metadata.update(
+                    self.metadata_extractor.get_metadata(
+                        doc=dl_doc,
+                        origin=origin,
+                    ),
                 )
             yield li_doc

@@ -22,9 +22,9 @@ _NODE_TEXT_KEY = "text"
 class DoclingNodeParser(NodeParser):
     """Docling format node parser.
 
-    Splits the JSON format of `DoclingPDFReader` into nodes corresponding
+    Splits the JSON format of `DoclingReader` into nodes corresponding
     to respective document elements from Docling's data model
-    (paragraphs, headings, tables etc.)
+    (paragraphs, headings, tables etc.).
 
     Args:
         chunker (BaseChunker, optional): The chunker to use. Defaults to `HierarchicalChunker(heading_as_metadata=True)`.

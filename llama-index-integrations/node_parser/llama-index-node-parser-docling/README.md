@@ -2,7 +2,7 @@
 
 ## Overview
 
-Docling Node Parser parses [Docling](https://github.com/DS4SD/docling)'s native format (JSON-serialized) into LlamaIndex nodes with rich metadata for usage in downstream pipelines for RAG / QA etc.
+Docling Node Parser parses [Docling](https://github.com/DS4SD/docling) JSON output into LlamaIndex nodes with rich metadata for usage in downstream pipelines for RAG / QA etc.
 
 ## Installation
 
@@ -12,18 +12,14 @@ pip install llama-index-node-parser-docling
 
 ## Usage
 
-Docling Node Parser parses LlamaIndex documents containing JSON-serialized Docling format, for example as produced from a Docling PDF Reader.
+Docling Node Parser parses LlamaIndex documents containing JSON-serialized Docling format, as created by a Docling Reader.
 
 Basic usage looks like this:
 
 ```python
-from llama_index.readers.docling import DoclingPDFReader
-from llama_index.node_parser.docling import DoclingNodeParser
+# docs = ...  # e.g. created using Docling Reader in JSON mode
 
-reader = DoclingPDFReader(export_type="json")
-docs = reader.load_data(file_path="https://arxiv.org/pdf/2408.09869")
-print(f"{docs[0].text[:50]}...")
-# > {"_name":"","type":"pdf-document","description":{"...
+from llama_index.node_parser.docling import DoclingNodeParser
 
 node_parser = DoclingNodeParser()
 nodes = node_parser.get_nodes_from_documents(documents=docs)

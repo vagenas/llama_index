@@ -1,6 +1,6 @@
 import json
 from unittest.mock import MagicMock
-from llama_index.readers.docling.base import DoclingPDFReader
+from llama_index.readers.docling.base import DoclingReader
 from docling_core.types import Document as DLDocument
 
 
@@ -18,7 +18,7 @@ def test_lazy_load_data_with_md_export(mocker):
         return_value=mock_response,
     )
 
-    reader = DoclingPDFReader()
+    reader = DoclingReader()
     doc_iter = reader.lazy_load_data(file_path="foo.pdf")
     act_li_docs = list(doc_iter)
     assert len(act_li_docs) == 1
@@ -43,7 +43,7 @@ def test_lazy_load_data_with_json_export(mocker):
         return_value=mock_response,
     )
 
-    reader = DoclingPDFReader(export_type="json")
+    reader = DoclingReader(export_type=DoclingReader.ExportType.JSON)
     doc_iter = reader.lazy_load_data(file_path="foo.pdf")
     act_li_docs = list(doc_iter)
     assert len(act_li_docs) == 1
